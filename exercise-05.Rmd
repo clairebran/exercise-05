@@ -1,0 +1,148 @@
+---
+title: "Exercise 5"
+author: "Claire Brandes"
+date: "`r Sys.Date()`"
+output: 
+  prettydoc::html_pretty:
+    theme: leonids
+    toc: yes
+---
+
+# Challenge 1
+
+## Step 1
+
+Using the {tidyverse} read_csv() function, load the "IMDB-movies.csv" data set as a "tibble" named **d**. 
+
+```{r}
+library(readr)
+f <- "https://raw.githubusercontent.com/difiore/ada-2024-datasets/main/IMDB-movies.csv"
+d <- read_csv(f, col_names = TRUE)
+```
+
+## Step 2
+
+Use a one-line statement to filter the data set to include just movies from 1920 to 1979 and moves that are between 1 and 3 hours long (**runtimeMinutes** >= 60 and **runtimeMinutes** <= 180), and add a new column that codes the startYear into a new variable, **decade** ("20s", "30s",..."70s"). There are now 5651 movies remaining in the data set. 
+
+```{r}
+library(dplyr)
+d <- d %>%
+  filter(between(startYear, 1920, 1979)) %>%
+  filter(between(runtimeMinutes, 60, 180)) %>%
+  mutate(decade = case_when(
+    startYear <= 1929 ~ "20s",
+    startYear <= 1939 ~ "30s",
+    startYear <= 1949 ~ "40s",
+    startYear <= 1959 ~ "50s",
+    startYear <= 1969 ~ "60s",
+    startYear <= 1979 ~ "70s",
+    TRUE ~ NA
+  ))
+```
+
+## Step 3 
+
+Use {ggplot2} to plot histograms of the distribution of **runtimeMinutes** for each decade. 
+
+```{r}
+library(tidyverse)
+ggplot(data = d, mapping = aes(x = runtimeMinutes, group = runtimeMinutes, fill = runtimeMinutes)) + 
+  ylab("Count") + xlab("Run-Time in Minutes") +
+  geom_histogram(bins = 30) + 
+  facet_wrap(vars(decade), nrow = 5, ncol = 2) + 
+  theme_dark() 
+```
+
+## Step 4
+
+Use a one-line statement to calculate the population mean and population standard deviation in runtimeMinutes for each decade and save the results in a new data frame called **results**. 
+
+
+```{r}
+(results <- d %>% group_by(decade) %>%
+  summarise(
+    pop_mean = mean(runtimeMinutes),
+    pop_sd = sd(runtimeMinutes)
+  ))
+```
+
+## Step 5
+
+Draw a single sample of 100 movies, without replacement, from each decade and calculate the single sample mean and single sample standard deviation in **runtimeMinutes** for each decade.
+
+```{r}
+s <- d %>% group_by(decade) %>%
+  sample_n(size = 100, replace = FALSE)
+```
+
+Calculating single sample mean and single standard deviation in runtimeMinutes for each decade:
+
+```{r}
+(sample_results <- s %>% group_by(decade) %>%
+  summarise(
+    sample_mean = mean(runtimeMinutes),
+    sample_sd = sd(runtimeMinutes)
+  ))
+```
+
+## Step 6
+
+Calculate for each decade the standard error around your estimate of the population mean **runtimeMinutes** based on the standard deviation and sample size (n = 100 movies) of your single sample. Adding this data to the tibble created in Step 5:
+
+```{r}
+(sample_results <- s %>% group_by(decade) %>%
+  summarise(
+    sample_mean = mean(runtimeMinutes),
+    sample_sd = sd(runtimeMinutes),
+    std_error = sample_sd/sqrt(100)
+  ))
+```
+
+## Step 7
+
+Compare these estimates to the actual population mean **runtimeMinutes** for each decade and to the calculated SE in the population mean for samples of size 100 based on the population standard deviation for each decade. 
+
+```{r}
+full_join(results, sample_results)
+```
+
+## Step 8
+
+Generate a *sampling distribution* of mean **runtimeMinutes** for each decade by [a] drawing 1000 random samples of 100 movies from each decade, without replacement, and, for each sample, [b] calculating the mean **runtimeMinutes** and the standard deviation in **runtimeMinutes** for each decade. 
+
+Generating sampling distribution:
+
+```{r}
+library(mosaic)
+reps <- 1000
+
+samp_dist <- do(reps) * sample_n(group_by(d, decade), 100, replace = FALSE)
+```
+
+Calculating mean and std. dev. for each decade:
+
+```{r}
+(samp_dist_results <- samp_dist %>% group_by(decade) %>%
+  summarise(
+    samp_dist_mean = mean(runtimeMinutes),
+    samp_dist_sd = sd(runtimeMinutes) 
+  ))
+```
+
+## Step 9
+
+Calculate the **mean** and the **standard deviation** of the sampling distribution of sample means for each decade and plot a histogram of the sampling distribution for each decade.
+
+Calculating mean and std. dev. of sampling distribution:
+
+```{r}
+mean(samp_dist_results$samp_dist_mean)
+sd(samp_dist_results$samp_dist_sd)
+```
+
+Plotting histogram of the sampling distribution for each decade:
+
+```{r}
+
+```
+
